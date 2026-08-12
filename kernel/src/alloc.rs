@@ -28,7 +28,7 @@ pub fn alloc_pages(n: usize) -> PAddr {
             panic!("out of memory");
         }
 
-        common::memset(paddr as *mut u8, 0, n * PAGE_SIZE);
+        common::memset(paddr as *mut u8, 0, size);
         paddr
     }
 }

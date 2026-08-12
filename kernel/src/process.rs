@@ -24,6 +24,9 @@ pub struct Process {
 
 static mut PROCS: [MaybeUninit<Process>; PROCS_MAX] = [const { MaybeUninit::uninit() }; PROCS_MAX];
 
+pub static mut CURRENT_PROC: *mut Process = core::ptr::null_mut();
+pub static mut IDLE_PROC: *mut Process = core::ptr::null_mut();
+
 #[unsafe(naked)]
 pub unsafe extern "C" fn switch_context(prev_sp: *mut *mut usize, next_sp: *const *mut usize) {
     naked_asm!(
@@ -168,9 +171,6 @@ pub fn proc_b_entry() {
     }
 }
 
-pub static mut CURRENT_PROC: *mut Process = core::ptr::null_mut();
-pub static mut IDLE_PROC: *mut Process = core::ptr::null_mut();
-
 pub fn yield_cpu() {
     unsafe {
         let current = &mut *CURRENT_PROC;
@@ -197,7 +197,7 @@ pub fn yield_cpu() {
             "sfence.vma",
             "csrw sscratch, {sscratch}",
             satp = in(reg) (alloc::SATP_SV32 | (next.page_table as usize / alloc::PAGE_SIZE)),
-            sscratch = in(reg) (next.stack.as_ptr().add(KERNEL_STACK_SIZE)),
+            sscratch = in(reg) (next.stack.as_ptr().add(KERNEL_STACK_SIZE) as usize),
         );
 
         let prev = current;
