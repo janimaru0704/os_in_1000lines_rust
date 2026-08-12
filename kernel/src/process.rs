@@ -66,48 +66,49 @@ pub fn create_process(pc: usize) -> &'static mut Process {
         let proc = unsafe { &mut *PROCS[i].as_mut_ptr() };
 
         if proc.state == PROC_UNUSED {
-            unsafe {
-            let stack_top = proc.stack.as_mut_ptr().add(KERNEL_STACK_SIZE);
+            let stack_top = unsafe { proc.stack.as_mut_ptr().add(KERNEL_STACK_SIZE) };
 
             let mut sp = stack_top as *mut usize;
-            sp = sp.sub(1);
-            sp.write(0); // s11
+            unsafe {
+                sp = sp.sub(1);
+                sp.write(0); // s11
 
-            sp = sp.sub(1);
-            sp.write(0); // s10
+                sp = sp.sub(1);
+                sp.write(0); // s10
 
-            sp = sp.sub(1);
-            sp.write(0); // s9
+                sp = sp.sub(1);
+                sp.write(0); // s9
 
-            sp = sp.sub(1);
-            sp.write(0); // s8
+                sp = sp.sub(1);
+                sp.write(0); // s8
 
-            sp = sp.sub(1);
-            sp.write(0); // s7
+                sp = sp.sub(1);
+                sp.write(0); // s7
 
-            sp = sp.sub(1);
-            sp.write(0); // s6
+                sp = sp.sub(1);
+                sp.write(0); // s6
 
-            sp = sp.sub(1);
-            sp.write(0); // s5
+                sp = sp.sub(1);
+                sp.write(0); // s5
 
-            sp = sp.sub(1);
-            sp.write(0); // s4
+                sp = sp.sub(1);
+                sp.write(0); // s4
 
-            sp = sp.sub(1);
-            sp.write(0); // s3
+                sp = sp.sub(1);
+                sp.write(0); // s3
 
-            sp = sp.sub(1);
-            sp.write(0); // s2
+                sp = sp.sub(1);
+                sp.write(0); // s2
 
-            sp = sp.sub(1);
-            sp.write(0); // s1
+                sp = sp.sub(1);
+                sp.write(0); // s1
 
-            sp = sp.sub(1);
-            sp.write(0); // s0
+                sp = sp.sub(1);
+                sp.write(0); // s0
 
-            sp = sp.sub(1);
-            sp.write(pc); // ra
+                sp = sp.sub(1);
+                sp.write(pc); // ra
+            }
 
             let kernel_base = &raw const linker::__kernel_base as usize;
             let free_ram_end = &raw const linker::__free_ram_end as usize;
@@ -115,12 +116,14 @@ pub fn create_process(pc: usize) -> &'static mut Process {
             let page_table = alloc::alloc_pages(1) as *mut u32;
 
             for paddr in (kernel_base..free_ram_end).step_by(alloc::PAGE_SIZE) {
-                map_page(
-                    page_table,
-                    paddr,
-                    paddr,
-                    alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
-                );
+                unsafe {
+                    map_page(
+                        page_table,
+                        paddr,
+                        paddr,
+                        alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
+                    );
+                }
             }
 
             proc.pid = i as i32 + 1;
@@ -129,7 +132,7 @@ pub fn create_process(pc: usize) -> &'static mut Process {
             proc.page_table = page_table;
 
             return proc;
-            }
+            
         }
     }
 
