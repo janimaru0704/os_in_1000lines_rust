@@ -41,7 +41,7 @@ macro_rules! read_csr {
         let value: usize;
 
         unsafe {
-            core::arch::asm!(
+            ::core::arch::asm!(
                 concat!("csrr {value}, ", stringify!($csr)),
                 value = out(reg) value,
             );
@@ -57,7 +57,7 @@ macro_rules! write_csr {
         let value = $value;
 
         unsafe {
-            core::arch::asm!(
+            ::core::arch::asm!(
                 concat!("csrw ", stringify!($csr), ", {value}"),
                 value = in(reg) value,
             );

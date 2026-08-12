@@ -4,11 +4,11 @@ pub const PAGE_SIZE: usize = 4096;
 
 pub const SATP_SV32: usize = 1 << 31;
 
-pub const PAGE_V: usize = 1 << 0;
-pub const PAGE_R: usize = 1 << 1;
-pub const PAGE_W: usize = 1 << 2;
-pub const PAGE_X: usize = 1 << 3;
-pub const PAGE_U: usize = 1 << 4;
+pub const PAGE_V: u32 = 1 << 0;
+pub const PAGE_R: u32 = 1 << 1;
+pub const PAGE_W: u32 = 1 << 2;
+pub const PAGE_X: u32 = 1 << 3;
+pub const PAGE_U: u32 = 1 << 4;
 
 pub type PAddr = usize;
 
@@ -31,7 +31,7 @@ pub fn alloc_pages(n: usize) -> PAddr {
     }
 }
 
-pub unsafe fn map_page(table1: *mut usize, vaddr: usize, paddr: PAddr, flags: usize) {
+pub unsafe fn map_page(table1: *mut u32, vaddr: usize, paddr: PAddr, flags: u32) {
     if !common::is_aligned(vaddr, PAGE_SIZE) {
         panic!("unaligned vaddr {}", vaddr);
     }
@@ -45,12 +45,12 @@ pub unsafe fn map_page(table1: *mut usize, vaddr: usize, paddr: PAddr, flags: us
         let entry1 = table1.add(vpn1);
         if (*entry1 & PAGE_V) == 0 {
             let pt_paddr = alloc_pages(1);
-            *entry1 = ((pt_paddr / PAGE_SIZE) << 10) | PAGE_V;
+            *entry1 = (((pt_paddr / PAGE_SIZE) as u32) << 10) | PAGE_V;
         }
 
         let vpn0 = (vaddr >> 12) & 0x3ff;
-        let table0 = ((*entry1 >> 10) * PAGE_SIZE) as *mut usize;
+        let table0 = ((*entry1 >> 10) as usize * PAGE_SIZE) as *mut u32;
         let entry0 = table0.add(vpn0);
-        *entry0 = ((paddr / PAGE_SIZE) << 10) | flags | PAGE_V;
+        *entry0 = (((paddr / PAGE_SIZE) as u32) << 10) | flags | PAGE_V;
     }
 }

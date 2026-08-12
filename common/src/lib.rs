@@ -21,7 +21,7 @@ pub fn print(putchar: fn(u8), args: fmt::Arguments) {
 }
 
 pub const fn align_up(value: usize, align: usize) -> usize {
-    value.div_ceil(align)
+    value.div_ceil(align) * align
 }
 
 pub const fn is_aligned(value: usize, align: usize) -> bool {
