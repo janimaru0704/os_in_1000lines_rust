@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "kernel",
+    "user",
+    "common",
+]
+
+default-members = [
+    "kernel",
+    "user",
+]
+
+resolver = "3"
