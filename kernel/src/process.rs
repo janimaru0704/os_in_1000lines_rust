@@ -132,7 +132,6 @@ pub fn create_process(pc: usize) -> &'static mut Process {
             proc.page_table = page_table;
 
             return proc;
-            
         }
     }
 

@@ -20,7 +20,9 @@ pub fn alloc_pages(n: usize) -> PAddr {
             NEXT_PADDR = &raw const linker::__free_ram as PAddr;
         }
         let paddr = NEXT_PADDR;
-        NEXT_PADDR += n * PAGE_SIZE;
+
+        let size = n * PAGE_SIZE;
+        NEXT_PADDR += size;
 
         if NEXT_PADDR > &raw const linker::__free_ram_end as PAddr {
             panic!("out of memory");
