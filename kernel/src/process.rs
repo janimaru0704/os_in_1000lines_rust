@@ -1,8 +1,5 @@
 use crate::{alloc, console, linker, my_panic, println, user_entry};
-use core::{
-    arch::{asm, naked_asm},
-    mem::MaybeUninit,
-};
+use core::arch::{asm, naked_asm};
 
 const PROCS_MAX: usize = 8;
 const KERNEL_STACK_SIZE: usize = 8192;
@@ -21,7 +18,19 @@ pub struct Process {
     pub stack: [u8; KERNEL_STACK_SIZE],
 }
 
-static mut PROCS: [MaybeUninit<Process>; PROCS_MAX] = [const { MaybeUninit::uninit() }; PROCS_MAX];
+impl Process {
+    const fn new() -> Self {
+        Self {
+            pid: 0,
+            state: PROC_UNUSED,
+            sp: core::ptr::null_mut(),
+            page_table: core::ptr::null_mut(),
+            stack: [0; KERNEL_STACK_SIZE],
+        }
+    }
+}
+
+static mut PROCS: [Process; PROCS_MAX] = [const { Process::new() }; PROCS_MAX];
 
 pub static mut CURRENT_PROC: *mut Process = core::ptr::null_mut();
 pub static mut IDLE_PROC: *mut Process = core::ptr::null_mut();
@@ -65,94 +74,95 @@ pub unsafe extern "C" fn switch_context(prev_sp: *mut *mut usize, next_sp: *cons
 
 pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Process {
     for i in 0..PROCS_MAX {
-        let proc = unsafe { &mut *PROCS[i].as_mut_ptr() };
+        let proc = unsafe { &mut PROCS[i] };
 
-        if proc.state == PROC_UNUSED {
-            let stack_top = unsafe { proc.stack.as_mut_ptr().add(KERNEL_STACK_SIZE) };
-
-            let mut sp = stack_top as *mut usize;
-            unsafe {
-                sp = sp.sub(1);
-                sp.write(0); // s11
-
-                sp = sp.sub(1);
-                sp.write(0); // s10
-
-                sp = sp.sub(1);
-                sp.write(0); // s9
-
-                sp = sp.sub(1);
-                sp.write(0); // s8
-
-                sp = sp.sub(1);
-                sp.write(0); // s7
-
-                sp = sp.sub(1);
-                sp.write(0); // s6
-
-                sp = sp.sub(1);
-                sp.write(0); // s5
-
-                sp = sp.sub(1);
-                sp.write(0); // s4
-
-                sp = sp.sub(1);
-                sp.write(0); // s3
-
-                sp = sp.sub(1);
-                sp.write(0); // s2
-
-                sp = sp.sub(1);
-                sp.write(0); // s1
-
-                sp = sp.sub(1);
-                sp.write(0); // s0
-
-                sp = sp.sub(1);
-                sp.write(user_entry as *const () as usize); // ra
-            }
-
-            let kernel_base = &raw const linker::__kernel_base as usize;
-            let free_ram_end = &raw const linker::__free_ram_end as usize;
-
-            let page_table = alloc::alloc_pages(1) as *mut u32;
-
-            for paddr in (kernel_base..free_ram_end).step_by(alloc::PAGE_SIZE) {
-                unsafe {
-                    alloc::map_page(
-                        page_table,
-                        paddr,
-                        paddr,
-                        alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
-                    );
-                }
-            }
-
-            for off in (0..image_size).step_by(alloc::PAGE_SIZE) {
-                let page = alloc::alloc_pages(1);
-
-                let remaining = image_size - off;
-                let copy_size = alloc::PAGE_SIZE.min(remaining);
-
-                unsafe {
-                    common::memcpy(page as *mut u8, image.add(off), copy_size);
-
-                    alloc::map_page(
-                        page_table,
-                        USER_BASE + off,
-                        page,
-                        alloc::PAGE_U | alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
-                    );
-                }
-            }
-
-            proc.pid = i as i32 + 1;
-            proc.state = PROC_RUNNABLE;
-            proc.sp = sp;
-            proc.page_table = page_table;
-
-            return proc;
+        if proc.state != PROC_UNUSED {
+            continue;
         }
+        let stack_top = unsafe { proc.stack.as_mut_ptr().add(KERNEL_STACK_SIZE) };
+
+        let mut sp = stack_top as *mut usize;
+        unsafe {
+            sp = sp.sub(1);
+            sp.write(0); // s11
+
+            sp = sp.sub(1);
+            sp.write(0); // s10
+
+            sp = sp.sub(1);
+            sp.write(0); // s9
+
+            sp = sp.sub(1);
+            sp.write(0); // s8
+
+            sp = sp.sub(1);
+            sp.write(0); // s7
+
+            sp = sp.sub(1);
+            sp.write(0); // s6
+
+            sp = sp.sub(1);
+            sp.write(0); // s5
+
+            sp = sp.sub(1);
+            sp.write(0); // s4
+
+            sp = sp.sub(1);
+            sp.write(0); // s3
+
+            sp = sp.sub(1);
+            sp.write(0); // s2
+
+            sp = sp.sub(1);
+            sp.write(0); // s1
+
+            sp = sp.sub(1);
+            sp.write(0); // s0
+
+            sp = sp.sub(1);
+            sp.write(user_entry as *const () as usize); // ra
+        }
+
+        let kernel_base = &raw const linker::__kernel_base as usize;
+        let free_ram_end = &raw const linker::__free_ram_end as usize;
+
+        let page_table = alloc::alloc_pages(1) as *mut u32;
+
+        for paddr in (kernel_base..free_ram_end).step_by(alloc::PAGE_SIZE) {
+            unsafe {
+                alloc::map_page(
+                    page_table,
+                    paddr,
+                    paddr,
+                    alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
+                );
+            }
+        }
+
+        for off in (0..image_size).step_by(alloc::PAGE_SIZE) {
+            let page = alloc::alloc_pages(1);
+
+            let remaining = image_size - off;
+            let copy_size = alloc::PAGE_SIZE.min(remaining);
+
+            unsafe {
+                common::memcpy(page as *mut u8, image.add(off), copy_size);
+
+                alloc::map_page(
+                    page_table,
+                    USER_BASE + off,
+                    page,
+                    alloc::PAGE_U | alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
+                );
+            }
+        }
+
+        proc.pid = i as i32 + 1;
+        proc.state = PROC_RUNNABLE;
+        proc.sp = sp;
+        proc.page_table = page_table;
+
+        return proc;
     }
 
     my_panic!("no free process slots");
@@ -195,8 +205,7 @@ pub fn yield_cpu() {
 
         for i in 0..PROCS_MAX {
             let index = (current.pid as usize + i) % PROCS_MAX;
-
-            let proc = &mut *PROCS[index].as_mut_ptr();
+            let proc = &mut PROCS[index];
 
             if proc.state == PROC_RUNNABLE && proc.pid > 0 {
                 next = proc;
