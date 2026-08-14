@@ -5,4 +5,6 @@ unsafe extern "C" {
     pub static mut __free_ram: u8;
     pub static mut __free_ram_end: u8;
     pub static mut __kernel_base: u8;
+    pub static mut __user_app_start: u8;
+    pub static mut __user_app_end: u8;
 }

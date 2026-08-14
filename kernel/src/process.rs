@@ -1,6 +1,5 @@
 use crate::{
-    alloc::{self, map_page},
-    console, linker, panic, println,
+    alloc, console, linker, panic, println, user_entry,
 };
 use core::{
     arch::{asm, naked_asm},
@@ -12,6 +11,8 @@ const KERNEL_STACK_SIZE: usize = 8192;
 
 const PROC_UNUSED: i32 = 0;
 const PROC_RUNNABLE: i32 = 1;
+
+pub const USER_BASE: usize = 0x1000000;
 
 #[repr(C)]
 pub struct Process {
@@ -64,7 +65,7 @@ pub unsafe extern "C" fn switch_context(prev_sp: *mut *mut usize, next_sp: *cons
     );
 }
 
-pub fn create_process(pc: usize) -> &'static mut Process {
+pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Process {
     for i in 0..PROCS_MAX {
         let proc = unsafe { &mut *PROCS[i].as_mut_ptr() };
 
@@ -110,7 +111,7 @@ pub fn create_process(pc: usize) -> &'static mut Process {
                 sp.write(0); // s0
 
                 sp = sp.sub(1);
-                sp.write(pc); // ra
+                sp.write(user_entry as *const () as usize); // ra
             }
 
             let kernel_base = &raw const linker::__kernel_base as usize;
@@ -120,13 +121,28 @@ pub fn create_process(pc: usize) -> &'static mut Process {
 
             for paddr in (kernel_base..free_ram_end).step_by(alloc::PAGE_SIZE) {
                 unsafe {
-                    map_page(
+                    alloc::map_page(
                         page_table,
                         paddr,
                         paddr,
                         alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
                     );
                 }
+            }
+
+            for off in (0..image_size).step_by(alloc::PAGE_SIZE) {
+                let page = alloc::alloc_pages(1);
+
+                let remaining = image_size - off;
+                let copy_size = alloc::PAGE_SIZE.min(remaining);
+
+                unsafe {
+                    common::memcpy(page as *mut u8, image.add(off), copy_size);
+
+                    alloc::map_page(page_table, USER_BASE + off, page,
+                        alloc::PAGE_U | alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X);
+                }
+
             }
 
             proc.pid = i as i32 + 1;

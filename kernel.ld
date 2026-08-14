@@ -32,3 +32,7 @@ SECTIONS {
     . += 64 * 1024 * 1024; /* 64MB */
     __free_ram_end = .;
 }
+
+/* user application */
+__user_app_start = _binary_target_riscv32i_unknown_none_elf_debug_user_bin_start;
+__user_app_end = _binary_target_riscv32i_unknown_none_elf_debug_user_bin_end;

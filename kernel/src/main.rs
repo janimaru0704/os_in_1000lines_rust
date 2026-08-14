@@ -11,7 +11,7 @@ pub mod trap;
 use core::arch::{asm, naked_asm};
 use core::panic::PanicInfo;
 
-use crate::process::create_process;
+const SSTATUS_SPIE: usize = 1 << 5;
 
 #[repr(C)]
 pub struct SbiRet {
@@ -65,7 +65,7 @@ fn kernel_main() -> ! {
 
     write_csr!(stvec, trap::kernel_entry as *const () as usize);
 
-    let idle = create_process(0);
+    let idle = process::create_process(core::ptr::null(), 0);
     idle.pid = 0;
 
     unsafe {
@@ -73,12 +73,30 @@ fn kernel_main() -> ! {
         process::CURRENT_PROC = idle;
     }
 
-    process::create_process(process::proc_a_entry as *const () as usize);
-    process::create_process(process::proc_b_entry as *const () as usize);
+    let user_app_start = &raw const linker::__user_app_start as *const u8;
+    let user_app_end = &raw const linker::__user_app_end as *const u8;
+
+    process::create_process(
+        user_app_start,
+        user_app_end as usize - user_app_start as usize,
+    );
 
     process::yield_cpu();
 
     panic!("switched to idle process");
+}
+
+#[unsafe(naked)]
+pub unsafe extern "C" fn user_entry() -> ! {
+    naked_asm!(
+        "li t0, {sepc}",
+        "csrw sepc, t0",
+        "li t0, {sstatus}",
+        "csrw sstatus, t0",
+        "sret",
+        sepc = const process::USER_BASE,
+        sstatus = const SSTATUS_SPIE,
+    );
 }
 
 #[unsafe(no_mangle)]
