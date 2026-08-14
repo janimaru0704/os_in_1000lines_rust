@@ -1,6 +1,4 @@
-use crate::{
-    alloc, console, linker, my_panic, println, user_entry,
-};
+use crate::{alloc, console, linker, my_panic, println, user_entry};
 use core::{
     arch::{asm, naked_asm},
     mem::MaybeUninit,
@@ -139,10 +137,13 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
                 unsafe {
                     common::memcpy(page as *mut u8, image.add(off), copy_size);
 
-                    alloc::map_page(page_table, USER_BASE + off, page,
-                        alloc::PAGE_U | alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X);
+                    alloc::map_page(
+                        page_table,
+                        USER_BASE + off,
+                        page,
+                        alloc::PAGE_U | alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
+                    );
                 }
-
             }
 
             proc.pid = i as i32 + 1;
