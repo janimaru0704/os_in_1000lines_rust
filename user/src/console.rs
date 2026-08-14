@@ -1,14 +1,13 @@
 use common::print as common_print;
 
-use crate::sbi_call;
+use crate::syscall;
 
 pub fn putchar(ch: u8) {
-    sbi_call(ch as isize, 0, 0, 0, 0, 0, 0, 1 /* Console PutChar */);
+    syscall(common::SYS_PUTCHAR, ch as i32, 0, 0);
 }
 
-pub fn getchar() -> isize {
-    let ret = sbi_call(0, 0, 0, 0, 0, 0, 0, 2);
-    ret.error
+pub fn getchar() -> i32 {
+    syscall(common::SYS_GETCHAR, 0, 0, 0)
 }
 
 pub fn print_args(args: core::fmt::Arguments) {
