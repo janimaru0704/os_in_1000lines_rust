@@ -4,8 +4,9 @@ use core::arch::{asm, naked_asm};
 const PROCS_MAX: usize = 8;
 const KERNEL_STACK_SIZE: usize = 8192;
 
-const PROC_UNUSED: i32 = 0;
-const PROC_RUNNABLE: i32 = 1;
+pub const PROC_UNUSED: i32 = 0;
+pub const PROC_RUNNABLE: i32 = 1;
+pub const PROC_EXITED: i32 = 2;
 
 pub const USER_BASE: usize = 0x1000000;
 

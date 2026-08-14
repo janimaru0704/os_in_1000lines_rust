@@ -1,5 +1,9 @@
 #![no_std]
 
+pub const SYS_PUTCHAR: i32 = 1;
+pub const SYS_GETCHAR: i32 = 2;
+pub const SYS_EXIT: i32 = 3;
+
 use core::fmt::{self, Write};
 
 pub fn print(putchar: fn(u8), args: fmt::Arguments) {

@@ -1,6 +1,8 @@
 use core::arch::naked_asm;
 
-use crate::my_panic;
+use crate::{console, my_panic, println, process::{self, CURRENT_PROC}};
+
+const SCAUSE_ECALL: usize = 8;
 
 #[repr(C, packed)]
 pub struct TrapFrame {
@@ -65,6 +67,32 @@ macro_rules! write_csr {
             );
         }
     }};
+}
+
+fn handle_syscall(f: *mut TrapFrame) {
+    unsafe {
+        match (*f).a3 as i32 {
+            common::SYS_PUTCHAR => console::putchar((*f).a0 as u8),
+            common::SYS_GETCHAR => {
+                loop {
+                    let ch = console::getchar();
+                    if ch >= 0 {
+                        (*f).a0 = ch as u32;
+                        break;
+                    }
+
+                    process::yield_cpu();
+                }
+            }
+            common::SYS_EXIT => {
+                println!("process {} exited", (*CURRENT_PROC).pid);
+                (*CURRENT_PROC).state = process::PROC_EXITED;
+                process::yield_cpu();
+                my_panic!("unreachable");
+            }
+            _ => my_panic!("unexpected syscall a3={:08x}", (*f).a3 as usize),
+        }
+    }
 }
 
 #[unsafe(naked)]
@@ -149,15 +177,20 @@ pub unsafe extern "C" fn kernel_entry() {
     );
 }
 
-pub extern "C" fn handle_trap(_f: *mut TrapFrame) {
+pub extern "C" fn handle_trap(f: *mut TrapFrame) {
     let scause = read_csr!(scause);
     let stval = read_csr!(stval);
-    let user_pc = read_csr!(sepc);
-
-    my_panic!(
-        "unexpected trap scause={:08x}, stval={:08x}, sepc={:08x}",
-        scause,
-        stval,
-        user_pc
-    );
+    let mut user_pc = read_csr!(sepc);
+    if scause == SCAUSE_ECALL {
+        handle_syscall(f);
+        user_pc += 4;
+    } else {
+        my_panic!(
+            "unexpected trap scause={:08x}, stval={:08x}, sepc={:08x}",
+            scause,
+            stval,
+            user_pc
+        );
+    }
+    write_csr!(sepc, user_pc);
 }

@@ -1,19 +1,35 @@
 #![no_std]
 #![no_main]
 
-use core::{arch::naked_asm, panic::PanicInfo};
+use core::{arch::{asm, naked_asm}, panic::PanicInfo};
 
+pub mod console;
 pub mod linker;
 pub mod shell;
 
 extern "C" fn exit() -> ! {
+    syscall(common::SYS_EXIT, 0, 0, 0);
     loop {}
 }
 
-#[allow(dead_code)]
-fn putchar(_ch: u8) {
-    /* 後で実装する */
-    unimplemented!("後で実装する");
+pub fn syscall(sysno: i32, arg0: i32, arg1: i32, arg2: i32) -> i32 {
+    let mut a0 = arg0;
+
+    unsafe {
+        asm!(
+            "ecall",
+
+            inlateout("a0") a0,
+
+            in("a1") arg1,
+            in("a2") arg2,
+            in("a3") sysno,
+
+            options(nostack),
+        );
+    }
+
+    a0
 }
 
 #[unsafe(no_mangle)]
