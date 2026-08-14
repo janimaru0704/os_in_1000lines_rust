@@ -2,14 +2,10 @@
 name = "user"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
 
 [dependencies]
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
+common = { path = "../common" }
 
 [[bin]]
 name = "user"
