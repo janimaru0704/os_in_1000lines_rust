@@ -1,4 +1,4 @@
-use crate::{linker, panic};
+use crate::{linker, my_panic};
 
 pub const PAGE_SIZE: usize = 4096;
 
@@ -25,7 +25,7 @@ pub fn alloc_pages(n: usize) -> PAddr {
         NEXT_PADDR += size;
 
         if NEXT_PADDR > &raw const linker::__free_ram_end as PAddr {
-            panic!("out of memory");
+            my_panic!("out of memory");
         }
 
         common::memset(paddr as *mut u8, 0, size);
@@ -35,11 +35,11 @@ pub fn alloc_pages(n: usize) -> PAddr {
 
 pub unsafe fn map_page(table1: *mut u32, vaddr: usize, paddr: PAddr, flags: u32) {
     if !common::is_aligned(vaddr, PAGE_SIZE) {
-        panic!("unaligned vaddr {}", vaddr);
+        my_panic!("unaligned vaddr {}", vaddr);
     }
 
     if !common::is_aligned(paddr, PAGE_SIZE) {
-        panic!("unaligned paddr {}", paddr);
+        my_panic!("unaligned paddr {}", paddr);
     }
 
     unsafe {

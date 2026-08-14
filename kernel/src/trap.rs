@@ -1,6 +1,6 @@
 use core::arch::naked_asm;
 
-use crate::println;
+use crate::my_panic;
 
 #[repr(C, packed)]
 pub struct TrapFrame {
@@ -103,13 +103,13 @@ pub unsafe extern "C" fn kernel_entry() {
         "sw s9, 4 * 27(sp)",
         "sw s10, 4 * 28(sp)",
         "sw s11, 4 * 29(sp)",
-
+        
         "csrr a0, sscratch",
         "sw a0, 4 * 30(sp)",
-
+        
         "addi a0, sp, 4 * 31",
         "csrw sscratch, a0",
-
+        
         "mv a0, sp",
         "call {handle_trap}",
 
@@ -150,13 +150,11 @@ pub unsafe extern "C" fn kernel_entry() {
 }
 
 pub extern "C" fn handle_trap(_f: *mut TrapFrame) {
-    println!("HANDLE_TRAP");
-
     let scause = read_csr!(scause);
     let stval = read_csr!(stval);
     let user_pc = read_csr!(sepc);
 
-    panic!(
+    my_panic!(
         "unexpected trap scause={:08x}, stval={:08x}, sepc={:08x}",
         scause, stval, user_pc
     );

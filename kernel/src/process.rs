@@ -1,5 +1,5 @@
 use crate::{
-    alloc, console, linker, panic, println, user_entry,
+    alloc, console, linker, my_panic, println, user_entry,
 };
 use core::{
     arch::{asm, naked_asm},
@@ -154,7 +154,7 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
         }
     }
 
-    panic!("no free process slots");
+    my_panic!("no free process slots");
 }
 
 fn delay() {

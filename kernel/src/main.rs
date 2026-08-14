@@ -83,7 +83,7 @@ fn kernel_main() -> ! {
 
     process::yield_cpu();
 
-    panic!("switched to idle process");
+    my_panic!("switched to idle process");
 }
 
 #[unsafe(naked)]
