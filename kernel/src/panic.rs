@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! panic {
+macro_rules! my_panic {
     ($($arg:tt)*) => {{
         $crate::println!(
             "PANIC: {}:{}: {}",

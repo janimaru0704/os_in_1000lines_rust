@@ -6,7 +6,7 @@ use core::{arch::naked_asm, panic::PanicInfo};
 pub mod linker;
 pub mod shell;
 
-fn exit() -> ! {
+extern "C" fn exit() -> ! {
     loop {}
 }
 

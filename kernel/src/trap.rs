@@ -1,5 +1,7 @@
 use core::arch::naked_asm;
 
+use crate::my_panic;
+
 #[repr(C, packed)]
 pub struct TrapFrame {
     pub ra: u32,
@@ -147,13 +149,15 @@ pub unsafe extern "C" fn kernel_entry() {
     );
 }
 
-pub fn handle_trap(_f: *mut TrapFrame) {
+pub extern "C" fn handle_trap(_f: *mut TrapFrame) {
     let scause = read_csr!(scause);
     let stval = read_csr!(stval);
     let user_pc = read_csr!(sepc);
 
-    panic!(
+    my_panic!(
         "unexpected trap scause={:08x}, stval={:08x}, sepc={:08x}",
-        scause, stval, user_pc
+        scause,
+        stval,
+        user_pc
     );
 }
