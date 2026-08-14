@@ -86,8 +86,7 @@ fn kernel_main() -> ! {
 #[unsafe(naked)]
 pub unsafe extern "C" fn boot() {
     naked_asm!(
-        "la t0, {stack_top}",
-        "mv sp, t0",
+        "la sp, {stack_top}",
         "j {kernel_main}",
         stack_top = sym linker::__stack_top,
         kernel_main = sym kernel_main,
