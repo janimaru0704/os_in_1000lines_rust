@@ -3,6 +3,7 @@
 
 pub mod alloc;
 pub mod console;
+pub mod file_system;
 pub mod linker;
 pub mod panic;
 pub mod process;
@@ -68,23 +69,7 @@ fn kernel_main() -> ! {
 
     virtio::virtio_blk_init();
 
-    let mut buf = [0u8; virtio::SECTOR_SIZE];
-    unsafe {
-        virtio::read_write_disk(buf.as_mut_ptr(), 0, false);
-    }
-    print!("first sector: ");
-    for ch in buf {
-        if ch == b'\0' {
-            break;
-        }
-        console::putchar(ch);
-    }
-    println!();
-
-    unsafe {
-        common::strcpy(buf.as_mut_ptr(), b"hello from kernel!!!\n\0".as_ptr());
-        virtio::read_write_disk(buf.as_mut_ptr(), 0, true);
-    }
+    file_system::fs_init();
 
     let idle = process::create_process(core::ptr::null(), 0);
     idle.pid = 0;
