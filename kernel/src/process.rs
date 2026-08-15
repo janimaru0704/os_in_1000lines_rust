@@ -8,13 +8,13 @@ pub const PROC_UNUSED: i32 = 0;
 pub const PROC_RUNNABLE: i32 = 1;
 pub const PROC_EXITED: i32 = 2;
 
-pub const USER_BASE: usize = 0x1000000;
+pub const USER_BASE: u32 = 0x1000000;
 
 #[repr(C)]
 pub struct Process {
     pub pid: i32,
     pub state: i32,
-    pub sp: *mut usize,
+    pub sp: *mut u32,
     pub page_table: *mut u32,
     pub stack: [u8; KERNEL_STACK_SIZE],
 }
@@ -37,7 +37,7 @@ pub static mut CURRENT_PROC: *mut Process = core::ptr::null_mut();
 pub static mut IDLE_PROC: *mut Process = core::ptr::null_mut();
 
 #[unsafe(naked)]
-pub unsafe extern "C" fn switch_context(prev_sp: *mut *mut usize, next_sp: *const *mut usize) {
+pub unsafe extern "C" fn switch_context(prev_sp: *mut *mut u32, next_sp: *const *mut u32) {
     naked_asm!(
         "addi sp, sp, -13 * 4",
         "sw ra, 0 * 4(sp)",
@@ -82,7 +82,7 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
         }
         let stack_top = unsafe { proc.stack.as_mut_ptr().add(KERNEL_STACK_SIZE) };
 
-        let mut sp = stack_top as *mut usize;
+        let mut sp = stack_top as *mut u32;
         unsafe {
             sp = sp.sub(1);
             sp.write(0); // s11
@@ -121,11 +121,11 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
             sp.write(0); // s0
 
             sp = sp.sub(1);
-            sp.write(user_entry as *const () as usize); // ra
+            sp.write(user_entry as *const () as u32); // ra
         }
 
-        let kernel_base = &raw const linker::__kernel_base as usize;
-        let free_ram_end = &raw const linker::__free_ram_end as usize;
+        let kernel_base = &raw const linker::__kernel_base as u32;
+        let free_ram_end = &raw const linker::__free_ram_end as u32;
 
         let page_table = alloc::alloc_pages(1) as *mut u32;
 
@@ -133,7 +133,7 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
             unsafe {
                 alloc::map_page(
                     page_table,
-                    paddr,
+                    paddr as usize,
                     paddr,
                     alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
                 );
@@ -151,7 +151,7 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
 
                 alloc::map_page(
                     page_table,
-                    USER_BASE + off,
+                    USER_BASE as usize + off,
                     page,
                     alloc::PAGE_U | alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
                 );
@@ -223,8 +223,8 @@ pub fn yield_cpu() {
             "csrw satp, {satp}",
             "sfence.vma",
             "csrw sscratch, {sscratch}",
-            satp = in(reg) (alloc::SATP_SV32 | (next.page_table as usize / alloc::PAGE_SIZE)),
-            sscratch = in(reg) (next.stack.as_ptr().add(KERNEL_STACK_SIZE) as usize),
+            satp = in(reg) (alloc::SATP_SV32 | (next.page_table as u32 / alloc::PAGE_SIZE as u32)),
+            sscratch = in(reg) (next.stack.as_ptr().add(KERNEL_STACK_SIZE) as u32),
         );
 
         let prev = current;

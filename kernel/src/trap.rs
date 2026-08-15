@@ -1,8 +1,8 @@
 use core::arch::naked_asm;
 
-use crate::{console, my_panic, println, process::{self, CURRENT_PROC}};
+use crate::{console, my_panic, println, process};
 
-const SCAUSE_ECALL: usize = 8;
+const SCAUSE_ECALL: u32 = 8;
 
 #[repr(C, packed)]
 pub struct TrapFrame {
@@ -42,7 +42,7 @@ pub struct TrapFrame {
 #[macro_export]
 macro_rules! read_csr {
     ($csr:tt) => {{
-        let value: usize;
+        let value: u32;
 
         unsafe {
             ::core::arch::asm!(
@@ -58,7 +58,7 @@ macro_rules! read_csr {
 #[macro_export]
 macro_rules! write_csr {
     ($csr:tt, $value:expr) => {{
-        let value = $value;
+        let value: u32 = $value;
 
         unsafe {
             ::core::arch::asm!(
@@ -85,12 +85,15 @@ fn handle_syscall(f: *mut TrapFrame) {
                 }
             }
             common::SYS_EXIT => {
-                println!("process {} exited", (*CURRENT_PROC).pid);
-                (*CURRENT_PROC).state = process::PROC_EXITED;
+                println!("process {} exited", (*process::CURRENT_PROC).pid);
+                (*process::CURRENT_PROC).state = process::PROC_EXITED;
                 process::yield_cpu();
                 my_panic!("unreachable");
             }
-            _ => my_panic!("unexpected syscall a3={:08x}", (*f).a3 as usize),
+            _ => my_panic!(
+                "unexpected syscall a3={:08x}",
+                core::ptr::read_unaligned(core::ptr::addr_of!((*f).a3)),
+            ),
         }
     }
 }
