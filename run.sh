@@ -25,6 +25,9 @@ llvm-objcopy \
 echo "== Build kernel =="
 cargo build -p kernel
 
+echo "== Create disk.tar =="
+(cd disk && tar cf ../disk.tar --format=ustar *.txt)
+
 echo "== Run QEMU =="
 qemu-system-riscv32 \
     -machine virt \
@@ -33,6 +36,6 @@ qemu-system-riscv32 \
     -serial mon:stdio \
     -no-reboot \
     -d unimp,guest_errors,int,cpu_reset -D qemu.log \
-    -drive id=drive0,file=lorem.txt,format=raw,if=none \
+    -drive id=drive0,file=disk.tar,format=raw,if=none \
     -device virtio-blk-device,drive=drive0,bus=virtio-mmio-bus.0 \
     -kernel "$BUILD/kernel"
