@@ -1,4 +1,4 @@
-use crate::{alloc, console, linker, my_panic, println, user_entry};
+use crate::{alloc, console, linker, my_panic, println, user_entry, virtio};
 use core::arch::{asm, naked_asm};
 
 const PROCS_MAX: usize = 8;
@@ -138,6 +138,15 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
                     alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
                 );
             }
+        }
+
+        unsafe {
+            alloc::map_page(
+                page_table,
+                virtio::VIRTIO_BLK_PADDR as usize,
+                virtio::VIRTIO_BLK_PADDR,
+                alloc::PAGE_R | alloc::PAGE_W
+            );
         }
 
         for off in (0..image_size).step_by(alloc::PAGE_SIZE) {
