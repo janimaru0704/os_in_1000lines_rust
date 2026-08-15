@@ -11,7 +11,7 @@ pub mod trap;
 use core::arch::{asm, naked_asm};
 use core::panic::PanicInfo;
 
-const SSTATUS_SPIE: usize = 1 << 5;
+const SSTATUS_SPIE: u32 = 1 << 5;
 
 #[repr(C)]
 pub struct SbiRet {

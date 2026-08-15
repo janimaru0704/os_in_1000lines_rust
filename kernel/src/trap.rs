@@ -90,7 +90,10 @@ fn handle_syscall(f: *mut TrapFrame) {
                 process::yield_cpu();
                 my_panic!("unreachable");
             }
-            _ => my_panic!("unexpected syscall a3={:08x}", (*f).a3 as usize),
+            _ => my_panic!(
+                "unexpected syscall a3={:08x}",
+                core::ptr::read_unaligned(core::ptr::addr_of!((*f).a3)),
+            ),
         }
     }
 }

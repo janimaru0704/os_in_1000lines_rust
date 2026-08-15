@@ -134,7 +134,7 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
                 alloc::map_page(
                     page_table,
                     paddr as usize,
-                    paddr as usize,
+                    paddr,
                     alloc::PAGE_R | alloc::PAGE_W | alloc::PAGE_X,
                 );
             }
@@ -223,8 +223,8 @@ pub fn yield_cpu() {
             "csrw satp, {satp}",
             "sfence.vma",
             "csrw sscratch, {sscratch}",
-            satp = in(reg) (alloc::SATP_SV32| (next.page_table as u32 / alloc::PAGE_SIZE as u32)),
-            sscratch = in(reg) (next.stack.as_ptr().add(KERNEL_STACK_SIZE) as usize),
+            satp = in(reg) (alloc::SATP_SV32 | (next.page_table as u32 / alloc::PAGE_SIZE as u32)),
+            sscratch = in(reg) (next.stack.as_ptr().add(KERNEL_STACK_SIZE) as u32),
         );
 
         let prev = current;
