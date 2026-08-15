@@ -1,7 +1,10 @@
 #![no_std]
 #![no_main]
 
-use core::{arch::{asm, naked_asm}, panic::PanicInfo};
+use core::{
+    arch::{asm, naked_asm},
+    panic::PanicInfo,
+};
 
 pub mod console;
 pub mod linker;

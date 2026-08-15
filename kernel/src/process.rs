@@ -145,7 +145,7 @@ pub fn create_process(image: *const u8, image_size: usize) -> &'static mut Proce
                 page_table,
                 virtio::VIRTIO_BLK_PADDR as usize,
                 virtio::VIRTIO_BLK_PADDR,
-                alloc::PAGE_R | alloc::PAGE_W
+                alloc::PAGE_R | alloc::PAGE_W,
             );
         }
 
