@@ -69,7 +69,9 @@ fn kernel_main() -> ! {
     virtio::virtio_blk_init();
 
     let mut buf = [0u8; virtio::SECTOR_SIZE];
-    unsafe { virtio::read_write_disk(buf.as_mut_ptr(), 0, false); }
+    unsafe {
+        virtio::read_write_disk(buf.as_mut_ptr(), 0, false);
+    }
     print!("first sector: ");
     for ch in buf {
         if ch == b'\0' {

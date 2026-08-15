@@ -73,17 +73,15 @@ fn handle_syscall(f: *mut TrapFrame) {
     unsafe {
         match (*f).a3 as i32 {
             common::SYS_PUTCHAR => console::putchar((*f).a0 as u8),
-            common::SYS_GETCHAR => {
-                loop {
-                    let ch = console::getchar();
-                    if ch >= 0 {
-                        (*f).a0 = ch as u32;
-                        break;
-                    }
-
-                    process::yield_cpu();
+            common::SYS_GETCHAR => loop {
+                let ch = console::getchar();
+                if ch >= 0 {
+                    (*f).a0 = ch as u32;
+                    break;
                 }
-            }
+
+                process::yield_cpu();
+            },
             common::SYS_EXIT => {
                 println!("process {} exited", (*process::CURRENT_PROC).pid);
                 (*process::CURRENT_PROC).state = process::PROC_EXITED;

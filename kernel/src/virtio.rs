@@ -1,4 +1,4 @@
-use crate::{alloc::{self, PAGE_SIZE}, my_panic, println};
+use crate::{alloc, my_panic, println};
 
 pub const SECTOR_SIZE: usize = 512;
 pub const VIRTQ_ENTRY_NUM: usize = 16;
@@ -59,8 +59,8 @@ pub struct VirtqUsed {
     pub ring: [VirtqUsedElem; VIRTQ_ENTRY_NUM],
 }
 
-const DESCS_AVAIL_SIZE: usize = core::mem::size_of::<[VirtqDesc; VIRTQ_ENTRY_NUM]>() +
-    core::mem::size_of::<VirtqAvail>();
+const DESCS_AVAIL_SIZE: usize =
+    core::mem::size_of::<[VirtqDesc; VIRTQ_ENTRY_NUM]>() + core::mem::size_of::<VirtqAvail>();
 
 const PADDING_SIZE: usize = common::align_up(DESCS_AVAIL_SIZE, alloc::PAGE_SIZE) - DESCS_AVAIL_SIZE;
 
@@ -85,32 +85,22 @@ pub struct VirtioBlkReq {
 }
 
 unsafe fn virtio_reg_read32(offset: usize) -> u32 {
-    unsafe {
-        core::ptr::read_volatile((VIRTIO_BLK_PADDR as usize + offset) as *const u32)
-    }
+    unsafe { core::ptr::read_volatile((VIRTIO_BLK_PADDR as usize + offset) as *const u32) }
 }
 
 unsafe fn virtio_reg_read64(offset: usize) -> u64 {
-    unsafe {
-        core::ptr::read_volatile((VIRTIO_BLK_PADDR as usize + offset) as *const u64)
-    }
+    unsafe { core::ptr::read_volatile((VIRTIO_BLK_PADDR as usize + offset) as *const u64) }
 }
 
 unsafe fn virtio_reg_write32(offset: usize, value: u32) {
     unsafe {
-        core::ptr::write_volatile(
-            (VIRTIO_BLK_PADDR as usize + offset) as *mut u32,
-            value
-        );
+        core::ptr::write_volatile((VIRTIO_BLK_PADDR as usize + offset) as *mut u32, value);
     }
 }
 
 unsafe fn virtio_reg_fetch_and_or32(offset: usize, value: u32) {
     unsafe {
-        virtio_reg_write32(
-            offset, 
-            virtio_reg_read32(offset) | value
-        );
+        virtio_reg_write32(offset, virtio_reg_read32(offset) | value);
     }
 }
 
@@ -121,7 +111,7 @@ static mut BLK_CAPACITY: u64 = 0;
 
 unsafe fn virtq_init(index: usize) -> *mut VirtioVirtq {
     let virtq_paddr = alloc::alloc_pages(
-        common::align_up(core::mem::size_of::<VirtioVirtq>(), PAGE_SIZE) / PAGE_SIZE,
+        common::align_up(core::mem::size_of::<VirtioVirtq>(), alloc::PAGE_SIZE) / alloc::PAGE_SIZE,
     );
     let vq = virtq_paddr as *mut VirtioVirtq;
     unsafe {
@@ -130,7 +120,7 @@ unsafe fn virtq_init(index: usize) -> *mut VirtioVirtq {
 
         virtio_reg_write32(VIRTIO_REG_QUEUE_SEL, index as u32);
         virtio_reg_write32(VIRTIO_REG_QUEUE_NUM, VIRTQ_ENTRY_NUM as u32);
-        virtio_reg_write32(VIRTIO_REG_QUEUE_PFN, virtq_paddr / PAGE_SIZE as u32);
+        virtio_reg_write32(VIRTIO_REG_QUEUE_PFN, virtq_paddr / alloc::PAGE_SIZE as u32);
     }
     vq
 }
@@ -150,7 +140,7 @@ pub fn virtio_blk_init() {
         virtio_reg_write32(VIRTIO_REG_DEVICE_STATUS, 0);
         virtio_reg_fetch_and_or32(VIRTIO_REG_DEVICE_STATUS, VIRTIO_STATUS_ACK);
         virtio_reg_fetch_and_or32(VIRTIO_REG_DEVICE_STATUS, VIRTIO_STATUS_DRIVER);
-        virtio_reg_write32(VIRTIO_REG_PAGE_SIZE, PAGE_SIZE as u32);
+        virtio_reg_write32(VIRTIO_REG_PAGE_SIZE, alloc::PAGE_SIZE as u32);
         BLK_REQUEST_VQ = virtq_init(0);
         virtio_reg_write32(VIRTIO_REG_DEVICE_STATUS, VIRTIO_STATUS_DRIVER_OK);
 
@@ -159,7 +149,8 @@ pub fn virtio_blk_init() {
         println!("virtio-blk: capacity is {} bytes", capacity);
 
         BLK_REQ_PADDR = alloc::alloc_pages(
-            common::align_up(core::mem::size_of::<VirtioBlkReq>(), PAGE_SIZE) / PAGE_SIZE,
+            common::align_up(core::mem::size_of::<VirtioBlkReq>(), alloc::PAGE_SIZE)
+                / alloc::PAGE_SIZE,
         );
         BLK_REQ = BLK_REQ_PADDR as *mut VirtioBlkReq;
     }
@@ -170,9 +161,7 @@ unsafe fn virtq_kick(vq: *mut VirtioVirtq, desc_index: i32) {
         (*vq).avail.ring[(*vq).avail.index as usize % VIRTQ_ENTRY_NUM] = desc_index as u16;
         (*vq).avail.index += 1;
     }
-    core::sync::atomic::fence(
-        core::sync::atomic::Ordering::SeqCst,
-    );
+    core::sync::atomic::fence(core::sync::atomic::Ordering::SeqCst);
     unsafe {
         virtio_reg_write32(VIRTIO_REG_QUEUE_NOTIFY, (*vq).queue_index as u32);
         (*vq).last_used_index += 1;
@@ -180,9 +169,7 @@ unsafe fn virtq_kick(vq: *mut VirtioVirtq, desc_index: i32) {
 }
 
 unsafe fn virtq_is_busy(vq: *mut VirtioVirtq) -> bool {
-    unsafe {
-        (*vq).last_used_index != *((*vq).used_index)
-    }
+    unsafe { (*vq).last_used_index != *((*vq).used_index) }
 }
 
 pub unsafe fn read_write_disk(buf: *mut u8, sector: u64, is_write: bool) {
@@ -190,14 +177,19 @@ pub unsafe fn read_write_disk(buf: *mut u8, sector: u64, is_write: bool) {
     if sector >= blk_capacity / SECTOR_SIZE as u64 {
         println!(
             "virtio: tried to read/write sector={}, but capacity is {}",
-            sector, blk_capacity / SECTOR_SIZE as u64,
+            sector,
+            blk_capacity / SECTOR_SIZE as u64,
         );
         return;
     }
 
     let blk_req = unsafe { &mut *BLK_REQ };
     blk_req.sector = sector;
-    blk_req.type_ = if is_write { VIRTIO_BLK_T_OUT } else { VIRTIO_BLK_T_IN };
+    blk_req.type_ = if is_write {
+        VIRTIO_BLK_T_OUT
+    } else {
+        VIRTIO_BLK_T_IN
+    };
     if is_write {
         unsafe {
             common::memcpy(blk_req.data.as_mut_ptr(), buf, SECTOR_SIZE);
@@ -230,7 +222,10 @@ pub unsafe fn read_write_disk(buf: *mut u8, sector: u64, is_write: bool) {
     }
 
     if blk_req.status != 0 {
-        println!("virtio: warn: failed to read/write sector={} status={}", sector, blk_req.status);
+        println!(
+            "virtio: warn: failed to read/write sector={} status={}",
+            sector, blk_req.status
+        );
         return;
     }
 
@@ -239,5 +234,4 @@ pub unsafe fn read_write_disk(buf: *mut u8, sector: u64, is_write: bool) {
             common::memcpy(buf, blk_req.data.as_ptr(), SECTOR_SIZE);
         }
     }
-
 }

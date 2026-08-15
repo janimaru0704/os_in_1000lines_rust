@@ -4,7 +4,7 @@ use crate::{console, exit, print, println};
 pub extern "C" fn main() {
     'prompt: loop {
         print!("> ");
-        
+
         let mut cmdline = [0u8; 128];
 
         for i in 0.. {
