@@ -2,7 +2,7 @@ use crate::{linker, my_panic};
 
 pub const PAGE_SIZE: usize = 4096;
 
-pub const SATP_SV32: usize = 1 << 31;
+pub const SATP_SV32: u32 = 1 << 31;
 
 pub const PAGE_V: u32 = 1 << 0;
 pub const PAGE_R: u32 = 1 << 1;

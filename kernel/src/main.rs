@@ -15,19 +15,19 @@ const SSTATUS_SPIE: usize = 1 << 5;
 
 #[repr(C)]
 pub struct SbiRet {
-    error: isize,
-    value: isize,
+    error: i32,
+    value: i32,
 }
 
 pub fn sbi_call(
-    arg0: isize,
-    arg1: isize,
-    arg2: isize,
-    arg3: isize,
-    arg4: isize,
-    arg5: isize,
-    fid: isize,
-    eid: isize,
+    arg0: i32,
+    arg1: i32,
+    arg2: i32,
+    arg3: i32,
+    arg4: i32,
+    arg5: i32,
+    fid: i32,
+    eid: i32,
 ) -> SbiRet {
     let mut a0 = arg0;
     let mut a1 = arg1;
@@ -63,7 +63,7 @@ fn kernel_main() -> ! {
         common::memset(bss, 0, bss_end as usize - bss as usize);
     }
 
-    write_csr!(stvec, trap::kernel_entry as *const () as usize);
+    write_csr!(stvec, trap::kernel_entry as *const () as u32);
 
     let idle = process::create_process(core::ptr::null(), 0);
     idle.pid = 0;

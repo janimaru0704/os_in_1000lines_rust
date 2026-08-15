@@ -3,10 +3,10 @@ use common::print as common_print;
 use crate::sbi_call;
 
 pub fn putchar(ch: u8) {
-    sbi_call(ch as isize, 0, 0, 0, 0, 0, 0, 1 /* Console PutChar */);
+    sbi_call(ch as i32, 0, 0, 0, 0, 0, 0, 1 /* Console PutChar */);
 }
 
-pub fn getchar() -> isize {
+pub fn getchar() -> i32 {
     let ret = sbi_call(0, 0, 0, 0, 0, 0, 0, 2);
     ret.error
 }
